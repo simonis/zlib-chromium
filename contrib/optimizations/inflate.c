@@ -1189,12 +1189,12 @@ int flush;
                     from = state->window + (state->wnext - copy);
                 if (copy > state->length) copy = state->length;
                 if (copy > left) copy = left;
-                put = chunkcopy_safe(put, from, copy, put + left);
+                put = chunkcopy_safe(put, from, copy, put + copy);
             }
             else {                              /* copy from output */
                 copy = state->length;
                 if (copy > left) copy = left;
-                put = chunkcopy_lapped_safe(put, state->offset, copy, put + left);
+                put = chunkcopy_lapped_safe(put, state->offset, copy, put + copy);
             }
             left -= copy;
             state->length -= copy;
@@ -1263,15 +1263,6 @@ int flush;
        Note: a memory error from inflate() is non-recoverable.
      */
   inf_leave:
-   /* We write a defined value in the unused space to help mark
-    * where the stream has ended. We don't use zeros as that can
-    * mislead clients relying on undefined behavior (i.e. assuming
-    * that the data is over when the buffer has a zero/null value).
-    */
-   if (left >= CHUNKCOPY_CHUNK_SIZE)
-      memset(put, 0x55, CHUNKCOPY_CHUNK_SIZE);
-   else
-      memset(put, 0x55, left);
 
     RESTORE();
     if (state->wsize || (out != strm->avail_out && state->mode < BAD &&

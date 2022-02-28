@@ -255,7 +255,7 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
                         from += wsize - op;
                         if (op < len) {         /* some from end of window */
                             len -= op;
-                            out = chunkcopy_safe(out, from, op, limit);
+                            out = chunkcopy_safe(out, from, op, out + op);
                             from = window;      /* more from start of window */
                             op = wnext;
                             /* This (rare) case can create a situation where
@@ -264,7 +264,7 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
                         }
                     }
                     if (op < len) {             /* still need some from output */
-                        out = chunkcopy_safe(out, from, op, limit);
+                        out = chunkcopy_safe(out, from, op, out + op);
                         len -= op;
                         /* When dist is small the amount of data that can be
                            copied from the window is also small, and progress
@@ -276,12 +276,12 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
                            the main copy is near the end.
                           */
                         out = chunkunroll_relaxed(out, &dist, &len);
-                        out = chunkcopy_safe_ugly(out, dist, len, limit);
+                        out = chunkcopy_safe_ugly(out, dist, len, out + len);
                     } else {
                         /* from points to window, so there is no risk of
                            overlapping pointers requiring memset-like behaviour
                          */
-                        out = chunkcopy_safe(out, from, len, limit);
+                        out = chunkcopy_safe(out, from, len, out + len);
                     }
                 }
                 else {
@@ -291,7 +291,7 @@ unsigned start;         /* inflate()'s starting value for strm->avail_out */
                        operations can write beyond `out+len` so long as they
                        stay within 258 bytes of `out`.
                      */
-                    out = chunkcopy_lapped_relaxed(out, dist, len);
+                    out = chunkcopy_lapped_safe(out, dist, len, out + len);
                 }
             }
             else if ((op & 64) == 0) {          /* 2nd level distance code */
