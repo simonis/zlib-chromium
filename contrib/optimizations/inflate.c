@@ -641,7 +641,7 @@ int flush;
     unsigned have, left;        /* available input and output */
     unsigned long hold;         /* bit buffer */
     unsigned bits;              /* bits in bit buffer */
-    unsigned in, out;           /* save starting available input and output */
+    unsigned in, out, oout;     /* save starting available input and output */
     unsigned copy;              /* number of stored or match bytes to copy */
     unsigned char FAR *from;    /* where to copy match bytes from */
     code here;                  /* current decoding table entry */
@@ -663,6 +663,7 @@ int flush;
     LOAD();
     in = have;
     out = left;
+    oout = out;
     ret = Z_OK;
     for (;;)
         switch (state->mode) {
@@ -1263,16 +1264,19 @@ int flush;
        Note: a memory error from inflate() is non-recoverable.
      */
   inf_leave:
-   /* We write a defined value in the unused space to help mark
-    * where the stream has ended. We don't use zeros as that can
-    * mislead clients relying on undefined behavior (i.e. assuming
-    * that the data is over when the buffer has a zero/null value).
-    */
-   if (left >= CHUNKCOPY_CHUNK_SIZE)
-      memset(put, 0x55, CHUNKCOPY_CHUNK_SIZE);
-   else
-      memset(put, 0x55, left);
-
+    /* We write a defined value in the unused space to help mark
+     * where the stream has ended. We don't use zeros as that can
+     * mislead clients relying on undefined behavior (i.e. assuming
+     * that the data is over when the buffer has a zero/null value).
+     *
+     * Only write the mark if we've produced any output at all.
+     */
+    if (left < oout) {
+      if (left >= CHUNKCOPY_CHUNK_SIZE)
+        memset(put, 0x55, CHUNKCOPY_CHUNK_SIZE);
+      else
+        memset(put, 0x55, left);
+    }
     RESTORE();
     if (state->wsize || (out != strm->avail_out && state->mode < BAD &&
             (state->mode < CHECK || flush != Z_FINISH)))
