@@ -52,7 +52,17 @@ if (readCount == 1) {
 }
 return outputStream.toByteArray();
 ```
-In order to support zlib-chromium in older version of Java, this special case could also be handled in zlib-chromium itself, by avoiding the padding bytes in cases where no output is produced at all.
+This will result in the following [exception in ASM](https://gitlab.ow2.org/asm/asm/-/issues/317955):
+```
+java.lang.IllegalArgumentException: Unsupported class file major version 21845
+  at org.springframework.asm.ClassReader.<init>(ClassReader.java:199)
+  at org.springframework.asm.ClassReader.<init>(ClassReader.java:180)
+  at org.springframework.asm.ClassReader.<init>(ClassReader.java:166)
+  at org.springframework.asm.ClassReader.<init>(ClassReader.java:287)
+  ...
+```
+
+In order to support zlib-chromium in older version of Java, this special case could also be handled in zlib-chromium itself, by avoiding the padding bytes in cases where no output is produced at all. I've therefore opened [issue 1302606](https://bugs.chromium.org/p/chromium/issues/detail?id=1302606) in the Chromium project and proposed the fix from the [fix-padding-when-no-output](https://github.com/simonis/zlib-chromium/commit/424c27eb80718838d5ec38e00f91c9d584c98e30) branch in this repo.
 
 ### zlib-cloudflare
 
