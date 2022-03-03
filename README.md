@@ -40,7 +40,19 @@ Java also provides the [`InflaterInputStream`](https://docs.oracle.com/en/java/j
 
 Until now I'm not aware of any Java application which relies on this strong guarantee (except for the OpenJDK [`test/jdk/jdk/nio/zipfs/ZipFSOutputStreamTest.java`](https://github.com/openjdk/jdk/blob/ff0cb98965a0b6be2f6c399e4645630c10b3466e/test/jdk/jdk/nio/zipfs/ZipFSOutputStreamTest.java) JTreg regression test). However, the fact that zlib-chromium unconditionally pads its output paired with an inefficient implementation of `InflaterInputStream`'s `read(..)` method already led to issues in the popular [Spring](https://github.com/spring-projects/spring-framework/issues/27429) and [ASM](https://gitlab.ow2.org/asm/asm/-/issues/317955) libraries. For more details, take a look at the issue [JDK-8281962: Avoid unnecessary native calls in InflaterInputStream](https://bugs.openjdk.java.net/browse/JDK-8281962) and the corresponding [pull request](https://github.com/openjdk/jdk/pull/7492) which fixed that issue for JDK 19.
 
-In short, the Spring/ASM issue mentioned before is caused by `InflaterInputStream`'s behavior to require an extra call to the native `inflate(..)` function just to realize that the stream has already been fully inflated. With Chromium's zlib implementation, this extra call will overwrite the beginning of the output buffer with padding bytes, although not a single byte of inflated data has been produced. To help older version of Java, this special case could also be handled in zlib-chromium itself, by avoiding the padding bytes in cases where no output was produced.
+In short, the Spring/ASM issue mentioned before is caused by `InflaterInputStream`'s behavior to require an extra call to the native `inflate(..)` function just to realize that the stream has already been fully inflated. With Chromium's zlib implementation, this extra call will overwrite the beginning of the output buffer with padding bytes, although not a single byte of inflated data has been produced and make the following Java coding pattern fail:
+```java
+int readcount = 0;
+while ((bytesRead = inflaterInputStream.read(data, 0, bufferSize)) != -1) {
+    outputStream.write(data, 0, bytesRead);
+    readCount++;
+}
+if (readCount == 1) {
+    return data;         //  <---- first bytes might be overwritten
+}
+return outputStream.toByteArray();
+```
+In order to support zlib-chromium in older version of Java, this special case could also be handled in zlib-chromium itself, by avoiding the padding bytes in cases where no output is produced at all.
 
 ### zlib-cloudflare
 
