@@ -66,7 +66,7 @@ In order to support zlib-chromium in older version of Java, this special case co
 
 ### zlib-cloudflare
 
-All the above applies to [zlib-cloudflare](https://github.com/cloudflare/zlib) as well because it has integrated most of the inflate optimizations from zlib-chromium.
+All the above applies to [zlib-cloudflare](https://github.com/cloudflare/zlib) as well because it has integrated most of the inflate optimizations from zlib-chromium. This was meanwhile fixed with [PR 31](https://github.com/cloudflare/zlib/pull/31") which basically imported the corresponding fix from zlib-chromium.
 
 ## Benchmark details
 
